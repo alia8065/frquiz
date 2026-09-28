@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mouvements Littéraires</title>
+<meta name="description" content="Jeu pour mémoriser les 12 mouvements littéraires français : dates, caractéristiques, œuvres, auteurs et citations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column "bibliothèque" console — progress header, tabbed game / fiches / chronologie */
+:root{
+  --bg:#ECEEF4; --surface:#FFFFFF; --ink:#161A2E; --muted:#5A6078; --line:#D4D8E6;
+  --accent:#3346D3; --accent-ink:#FFFFFF; --accent-soft:#E1E5FB;
+  --ok:#1C8456; --ok-soft:#DDF3E8; --bad:#C2334A; --bad-soft:#FBE3E7; --gold:#C98A00;
+  --f-display:"Gloock", Georgia, "Times New Roman", serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1220; --surface:#181C2E; --ink:#E8EAF4; --muted:#9AA0BA; --line:#2A3048;
+  --accent:#8592FF; --accent-ink:#0F1220; --accent-soft:#232A52;
+  --ok:#3CC98A; --ok-soft:#163427; --bad:#FF6B81; --bad-soft:#3A1822; --gold:#F2C14E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1220; --surface:#181C2E; --ink:#E8EAF4; --muted:#9AA0BA; --line:#2A3048;
+  --accent:#8592FF; --accent-ink:#0F1220; --accent-soft:#232A52;
+  --ok:#3CC98A; --ok-soft:#163427; --bad:#FF6B81; --bad-soft:#3A1822; --gold:#F2C14E; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:18px 60px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+header{display:flex;flex-direction:column;gap:10px}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(28px,6vw,40px);line-height:1.05}
+.stats{display:flex;gap:14px;font-size:13px;color:var(--muted)}
+.stats b{color:var(--ink);font-family:var(--f-mono)}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.barlabel{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+
+nav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+nav button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:9px;font-weight:600;font-size:14px;color:var(--muted)}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.chap{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.chap:hover{border-color:var(--accent)}
+.chap .nm{font-family:var(--f-display);font-size:19px;line-height:1.1}
+.chap .pd{font-size:12px;color:var(--muted)}
+.chap .mini{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.chap .mini>i{display:block;height:100%;background:var(--ok)}
+.chap .ct{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.chap.all{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chap.all .pd,.chap.all .ct{color:var(--accent-ink);opacity:.85}
+.chap.all .mini{background:rgba(255,255,255,.3)}
+.chap.all .mini>i{background:var(--accent-ink)}
+.chap.done .nm::after{content:" ✓";color:var(--ok)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.qhead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.kind{font-size:12px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.pips{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+.pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--ok)}
+.pip.on{background:var(--ok)}
+.tag{font-size:12px;padding:3px 9px;border-radius:20px;background:var(--accent-soft);color:var(--ink)}
+.prompt{font-family:var(--f-display);font-size:clamp(21px,4.6vw,27px);line-height:1.25}
+.prompt.quote{font-size:clamp(18px,4vw,22px)}
+.sub{color:var(--muted);font-weight:600;margin-top:-6px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:12px 14px;font-size:16px;line-height:1.35}
+.opt .k{font-family:var(--f-mono);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 6px;flex:none;margin-top:1px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.dim{opacity:.5}
+.typed{display:flex;flex-direction:column;gap:10px}
+.inp{font:inherit;font-size:18px;width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.inp:focus{outline:none;border-color:var(--accent)}
+.inp.right{border-color:var(--ok);background:var(--ok-soft)}
+.inp.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.fb.ok{background:var(--ok-soft)}
+.fb.no{background:var(--bad-soft)}
+.fb .v{font-weight:700}
+.fb.ok .v{color:var(--ok)}
+.fb.no .v{color:var(--bad)}
+.fb .ex{font-size:15px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.btn{border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:11px 18px;border-radius:10px}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.combo{font-family:var(--f-mono);font-weight:700;color:var(--gold)}
+.pop{animation:pop .35s}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (prefers-reduced-motion:reduce){.pop,.shake{animation:none}.bar>i{transition:none}}
+
+.fiche{display:flex;flex-direction:column;gap:10px}
+.fiche h2{font-size:26px}
+.fiche .pd{color:var(--accent);font-weight:700;font-size:14px}
+.fiche ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.fiche .wk{display:grid;grid-template-columns:52px 1fr;gap:2px 10px;font-size:15px}
+.fiche .wk .y{font-family:var(--f-mono);color:var(--muted);font-size:13px;padding-top:2px}
+.fiche blockquote{margin:0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-style:italic}
+.fiche blockquote cite{display:block;font-style:normal;font-weight:600;font-size:13px;margin-top:4px}
+.fnum{font-family:var(--f-mono);color:var(--muted);font-size:13px}
+
+.chrono{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:12px;font-family:var(--f-display);font-size:18px;text-align:left}
+.chip:hover{border-color:var(--accent)}
+.tl{display:flex;flex-direction:column;gap:6px}
+.tl li{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.tl ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tl .n{font-family:var(--f-mono);color:var(--accent);font-weight:700}
+.tl .p{font-size:12px;color:var(--muted);text-align:right}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+.muted{color:var(--muted)}
+.big{font-family:var(--f-display);font-size:34px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>Mouvements Littéraires</h1>
+      <div class="stats"><span>XP <b id="xp">0</b></span><span>En iyi seri <b id="best">0</b></span></div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="gbar"></i></div>
+    <div class="barlabel"><span id="glabel">0 / 0 bilgi ezberlendi</span><span id="gpct" class="mono">0%</span></div>
+  </header>
+
+  <nav role="tablist">
+    <button id="t-game" role="tab" aria-selected="true" data-tab="game">Oyun</button>
+    <button id="t-chrono" role="tab" aria-selected="false" data-tab="chrono">Kronoloji</button>
+    <button id="t-fiches" role="tab" aria-selected="false" data-tab="fiches">Fiches</button>
+  </nav>
+
+  <main id="view"></main>
+</div>
+
+<script>
+/* ---------- DATA (tout le contenu du PDF) ---------- */
+const MV = [
+ {id:"hum", n:"L'Humanisme", p:"XVIe siècle",
+  c:[["Fondé sur la redécouverte des textes antiques et de la Bible",["pl"]],
+     ["Essai de revenir aux textes originaux",["pl"]],
+     ["Caractérisé par la foi dans l'humain / élan vers le savoir (scientifique)",["lum"]]],
+  w:[["Les Essais",1580,"Montaigne"],["Pantagruel",1532,"Rabelais"],["Gargantua",1534,"Rabelais"]],
+  q:[["Mieux vaut une tête bien faite qu'une tête bien pleine.","Montaigne"]],
+  x:[{q:"« Mieux vaut une tête bien faite qu'une tête bien pleine » (Montaigne) : quelle idée ?",a:"Remise en question de l'éducation",o:["Critique de la religion","Éloge de la mémoire","Défense de la langue française"]},
+     {t:1,q:"Compléter : « Mieux vaut une tête bien ___ qu'une tête bien ___ » (iki kelimeyi yaz)",a:"faite / pleine",o:["pleine / faite","remplie / vide","pensante / savante"]}]},
+ {id:"pl", n:"La Pléiade", p:"XVIe siècle",
+  c:[["Découle de l'Humanisme et de la redécouverte des textes antiques",[]],
+     ["Un groupe de poètes soucieux de prouver que la poésie peut égaler les textes de l'Antiquité",["cla"]]],
+  w:[["Les Amours",1560,"Ronsard"],["Défense et illustration de la langue française",1549,"Du Bellay"],["Les Regrets",1558,"Du Bellay"]],
+  q:[], x:[]},
+ {id:"bar", n:"Le Baroque", p:"Fin XVIe – moitié XVIIe siècle",
+  c:[["Un art chargé et tourmenté (architecture / sculpture / peinture)",[]],
+     ["Deux branches principales : le noir et le blanc",[]],
+     ["En littérature, des écrivains exprimant une sensibilité inquiète face à un monde instable et en mouvement",[]],
+     ["Prise de conscience de l'absurdité de la condition humaine",["abs"]],
+     ["Utilisation de mises en abyme et de rebondissements",[]]],
+  w:[["L'Illusion comique",1635,"Corneille"],["Stances sur la mort",1595,"Jean de Sponde"]],
+  q:[],
+  x:[{q:"Baroque NOIR = ?",a:"Tensions / angoisses",o:["Ornemental / exubérant","Équilibre / mesure","Rêve / inconscient"]},
+     {q:"Baroque BLANC = ?",a:"Ornemental / exubérant",o:["Tensions / angoisses","Neutre / impersonnel","Mystère / nuance"]},
+     {q:"Le Baroque est un art chargé et tourmenté dans quels domaines ?",a:"Architecture / sculpture / peinture",o:["Musique / danse / théâtre","Roman / poésie / essai","Philosophie / science / politique"]}]},
+ {id:"cla", n:"Le Classicisme", p:"Seconde moitié du XVIIe siècle",
+  c:[["Basé sur le modèle antique",["hum","pl"]],
+     ["Recherche l'équilibre / la mesure",[]],
+     ["Représentation de l'âme humaine de façon universelle",[]],
+     ["Codification stricte, notamment au théâtre",[]],
+     ["Règle des 3 unités",[]],["Règle de vraisemblance",[]],["Règle de bienséance",[]]],
+  w:[["Horace",1640,"Corneille"],["Tartuffe",1669,"Molière"],["Phèdre",1673,"Racine"],["Les Fables",1668,"La Fontaine"]],
+  q:[],
+  x:[{q:"Règle des 3 unités = ?",a:"1 jour / 1 action / 1 lieu",o:["1 acte / 1 héros / 1 lieu","1 jour / 1 personnage / 1 décor","1 lieu / 1 thème / 1 siècle"]},
+     {q:"Règle de VRAISEMBLANCE = ?",a:"Ça semble réel / plausible",o:["Respect des conventions / ne pas choquer","1 jour / 1 action / 1 lieu","Exalter le « moi »"]},
+     {q:"Règle de BIENSÉANCE = ?",a:"Respect des conventions / ne pas choquer",o:["Ça semble réel / plausible","1 jour / 1 action / 1 lieu","Représenter la réalité de façon neutre"]},
+     {t:1,al:["esope","fables d esope"],q:"Les Fables de La Fontaine font référence aux Fables de qui ?",a:"Ésope",o:["Les Métamorphoses d'Ovide","L'Iliade d'Homère","La République de Platon"]}]},
+ {id:"lum", n:"Les Lumières", p:"XVIIIe siècle",
+  c:[["Un groupe d'intellectuels, d'acteurs, de poètes, de philosophes : des personnes engagées",[]],
+     ["Idée que l'homme peut améliorer sa condition par le progrès et la raison",[]],
+     ["Esprit critique pour lutter contre l'obscurantisme et les préjugés",[]],
+     ["Pensée nouvelle remettant en cause les mœurs et la suprématie bourgeoise",[]]],
+  w:[["L'Encyclopédie",1751,"D'Alembert et Diderot"],["Du contrat social",1762,"Rousseau"],["Lettres persanes",1721,"Montesquieu"],
+     ["Le Mariage de Figaro",1778,"Beaumarchais"],["Traité sur la tolérance",1763,"Voltaire"],["Candide",1759,"Voltaire"]],
+  q:[["Une véritable attitude intellectuelle, celle d'oser penser par soi-même.","Kant"]],
+  x:[{t:1,al:["revolution francaise","1789 revolution francaise","la revolution"],q:"Les Lumières mènent à quel événement ? (yıl veya olay)",a:"1789",o:["1848, la Deuxième République","1685, la révocation de l'édit de Nantes","1914, la Première Guerre mondiale"]},
+     {t:1,q:"Compléter (Kant) : « Une véritable attitude intellectuelle, celle d'oser ___ »",a:"penser par soi-même",o:["douter de tout","rêver sans raison","critiquer le roi"]}]},
+ {id:"rom", n:"Le Romantisme", p:"Après la Révolution – 1re moitié du XIXe siècle",
+  c:[["Volonté d'exalter le « moi » et de rompre avec l'esthétique classique",[]],
+     ["Exaltation du « moi » lyrique = utilisation du « je »",[]],
+     ["Idée de la liberté dans l'art",[]],
+     ["Opposition au classicisme (représentation universelle de l'âme, règles strictes)",[]],
+     ["Refus du rationalisme des Lumières, expression de la sensibilité",[]],
+     ["Idée du « mal du siècle » : malaise et insatisfaction dans tous les domaines",[]],
+     ["Le héros est soumis à une vague de passion, à une mélancolie sans cause et sans remède",[]]],
+  w:[["René",1802,"Chateaubriand"],["Hernani",1830,"Victor Hugo"],["Les Contemplations",1856,"Victor Hugo"],["Lorenzaccio",1834,"Musset"]],
+  q:[["On habite avec un cœur plein un monde vide.","Chateaubriand"]],
+  x:[{t:1,q:"Compléter (Chateaubriand) : « On habite avec un cœur plein un monde ___ »",a:"vide",o:["froid","perdu","immense"]},
+     {q:"Le « mal du siècle » est lié à quoi ?",a:"L'expression de l'individu",o:["L'hérédité et le milieu","La règle des 3 unités","Les théories freudiennes"]}]},
+ {id:"rea", n:"Le Réalisme", p:"XIXe siècle",
+  c:[["Représenter la réalité de son temps sous tous ses aspects, de la façon la plus neutre et impersonnelle possible",["nat"]]],
+  w:[["Le Rouge et le Noir",1830,"Stendhal"],["Le Père Goriot",1835,"Balzac"],["Madame Bovary",1856,"Flaubert"]],
+  q:[],
+  x:[{t:1,q:"Qui a écrit « Le Réalisme » (1857) ?",a:"Champfleury",o:["Flaubert","Zola","Balzac"]},
+     {t:1,q:"En quelle année Champfleury écrit-il « Le Réalisme » ?",a:"1857",o:["1830","1848","1864"]},
+     {t:1,q:"Les 2 grands initiateurs du Réalisme ? (X et Y)",a:"Stendhal et Balzac",o:["Flaubert et Zola","Hugo et Musset","Zola et Goncourt"]},
+     {t:1,q:"La Comédie humaine (Balzac) compte combien de textes ?",a:"93",o:["20","42","150"]},
+     {q:"La Comédie humaine, c'est quoi ?",a:"Un portrait exhaustif de la société de son époque",o:["L'histoire d'une famille sur 5 générations","Un recueil de poèmes lyriques","Une pièce en 5 actes"]},
+     {q:"Particularité du Père Goriot dans La Comédie humaine ?",a:"On y retrouve des personnages déjà présents dans d'autres romans",o:["C'est le premier roman sur le peuple","Il respecte la règle des 3 unités","Il est écrit en vers"]},
+     {q:"Flaubert et l'étiquette « réaliste » ?",a:"Il la refuse absolument",o:["Il l'invente","Il l'accepte fièrement","Il la donne à Zola"]}]},
+ {id:"nat", n:"Le Naturalisme", p:"XIXe siècle",
+  c:[["S'appuie sur les sciences naturelles et l'enquête de terrain",[]],
+     ["Analyse les effets de l'hérédité et du milieu sur les êtres",[]],
+     ["Étudie l'influence du milieu social sur la descendance et l'évolution des générations",[]]],
+  w:[["Les Rougon-Macquart",1886,"Zola"],["Germinie Lacerteux",1864,"Edmond de Goncourt"]],
+  q:[["C'est une œuvre de vérité, le premier roman sur le peuple, qui ne mente pas, et qui ait l'odeur du peuple.","Zola"]],
+  x:[]},
+ {id:"sym", n:"Le Symbolisme", p:"Fin du XIXe siècle",
+  c:[["Envisage le monde dans son mystère",[]],
+     ["S'éloigne du réel pour se tourner vers le rêve et l'intériorité",["sur"]],
+     ["Recherche de la nuance",[]],
+     ["Représenter les liens entre les éléments de la nature en dévoilant les énigmes du monde au moyen de symboles",[]],
+     ["Tente de libérer la poésie des règles traditionnelles",[]]],
+  w:[["Les Fleurs du mal",1857,"Baudelaire"],["Poèmes saturniens",1866,"Verlaine"],["Poésies",1887,"Mallarmé"],["Illuminations",1886,"Rimbaud"]],
+  q:[], x:[]},
+ {id:"sur", n:"Le Surréalisme", p:"Début du XXe siècle",
+  c:[["Impact des théories freudiennes et des thèses marxistes",[]],
+     ["Explore la surréalité en libérant l'homme du contrôle de la seule raison",[]],
+     ["Utilise des formes d'expression de l'inconscient comme le rêve",["sym"]],
+     ["Faire de l'art un acte révolutionnaire",[]]],
+  w:[["Manifeste du surréalisme",1924,"Breton"],["Nadja",1928,"Breton"],["Capitale de la douleur",1926,"Eluard"]],
+  q:[["Automatisme psychique pur par lequel on se propose d'exprimer […] le fonctionnement réel de la pensée.","Breton"]],
+  x:[{t:1,q:"Breton : « ___ psychique pur par lequel on se propose d'exprimer […] le fonctionnement réel de la pensée »",a:"Automatisme",o:["Rêve","Mouvement","Délire"]},
+     {t:1,q:"Breton : « Dictée de la pensée en l'absence de tout contrôle exercé par la ___ »",a:"raison",o:["morale","société","conscience"]},
+     {t:1,al:["esthetique et morale","morale ou esthetique"],q:"Breton : « … en dehors de toute préoccupation ___ ou ___ »",a:"esthétique ou morale",o:["politique ou religieuse","sociale ou historique","logique ou scientifique"]},
+     {t:1,q:"Breton : « Le surréalisme repose sur la croyance à la réalité supérieure de certaines formes d'___ négligées jusqu'à lui »",a:"associations",o:["images","émotions","écritures"]},
+     {t:1,q:"Breton : « … à la toute puissance du ___, au jeu désintéressé de la ___ » (iki kelime)",a:"rêve / pensée",o:["désir / raison","hasard / parole","symbole / poésie"]},
+     {t:1,al:["freud et marx","marx et freud","freudienne et marxiste","freudiennes marxistes"],q:"Quelles théories influencent le Surréalisme ? (X et Y)",a:"Freudiennes et marxistes",o:["Darwiniennes et positivistes","Cartésiennes et kantiennes","Existentialistes et chrétiennes"]}]},
+ {id:"abs", n:"L'Absurde", p:"1940 – 1970",
+  c:[["Illustre le désarroi de l'homme, comme étranger à un monde et à une existence dont il ne saisit plus le sens",["bar"]],
+     ["Ionesco et Beckett font éclater les formes théâtrales",[]]],
+  w:[["Le Roi se meurt",1962,"Ionesco"],["La Cantatrice chauve",1950,"Ionesco"],["La Leçon",1951,"Ionesco"],["Rhinocéros",1959,"Ionesco"],
+     ["En attendant Godot",1953,"Beckett"],["Oh les beaux jours",1960,"Beckett"]],
+  q:[],
+  x:[{t:1,al:["insolite ou vacuite","insolite vacuite du monde","insolite et vacuite du monde","insolite ou vacuite du monde"],q:"Au lieu d'« absurde », Ionesco et Beckett préfèrent parler de… (iki şey)",a:"L'insolite ou la vacuité du monde",o:["Le mal du siècle","La surréalité","L'illusion romanesque"]},
+     {t:1,q:"Les 2 dramaturges de l'Absurde qui font éclater les formes théâtrales ? (X et Y)",a:"Ionesco et Beckett",o:["Butor et Sarraute","Breton et Eluard","Corneille et Racine"]}]},
+ {id:"nr", n:"Le Nouveau Roman", p:"Seconde moitié du XXe siècle",
+  c:[["Volonté d'explorer autrement l'homme et son rapport au monde",[]],
+     ["Dénoncer l'illusion romanesque en mettant fin au récit traditionnel fondé sur l'histoire et les personnages",[]]],
+  w:[["La Modification",1957,"Butor"],["Le Planétarium",1959,"Sarraute"],["L'Ère du soupçon",1956,"Sarraute"]],
+  q:[], x:[]}
+];
+const ALL_AUTH=[...new Set(MV.flatMap(m=>m.w.map(w=>w[2]).concat(m.q.map(q=>q[1]))))];
+const PERIODS=[...new Set(MV.map(m=>m.p))];
+const MASTER=2;
+
+/* ---------- QUESTIONS ---------- */
+const rnd=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const Q=[];
+MV.forEach((m,mi)=>{
+  const near=MV.map((o,oi)=>({o,d:Math.abs(oi-mi)})).filter(x=>x.o!==m).sort((a,b)=>a.d-b.d);
+  const mvPool=ex=>near.filter(x=>!ex.includes(x.o.id)).map(x=>x.o.n);
+  const info=`${m.n} · ${m.p}`;
+  Q.push({id:m.id+"-p",type:"mc",mv:m.id,k:"Akım → Dönem",pr:esc(m.n),sub:"Hangi döneme ait?",a:m.p,pref:rnd(PERIODS.filter(p=>p!==m.p)),ex:info,showMv:false});
+  m.c.forEach((c,i)=>Q.push({id:`${m.id}-c${i}`,mv:m.id,k:"Özellik → Akım",pr:esc(c[0]),sub:"Bu özellik hangi akıma ait? Akımın adını yaz.",type:"text",a:m.n,pref:mvPool(c[1]).slice(0,4),pool:mvPool(c[1]),ex:`${info} — ${esc(c[0])}`,small:true}));
+  m.w.forEach((w,i)=>{
+    const [t,y,au]=w, line=`<i>${esc(t)}</i> (${y}) — ${esc(au)} · ${esc(m.n)}`;
+    const sameAu=[...new Set(m.w.map(x=>x[2]).concat(near.slice(0,2).flatMap(x=>x.o.w.map(z=>z[2]))))];
+    Q.push({id:`${m.id}-w${i}a`,mv:m.id,k:"Eser → Yazar",pr:`<i>${esc(t)}</i> <span class="mono">(${y})</span>`,sub:"Kim yazdı?",type:"text",a:au,pref:rnd(sameAu),pool:ALL_AUTH,ex:line,showMv:true});
+    Q.push({id:`${m.id}-w${i}m`,mv:m.id,k:"Eser → Akım",pr:`<i>${esc(t)}</i> — ${esc(au)}`,sub:"Hangi akım?",type:"text",a:m.n,ex:line});
+    Q.push({id:`${m.id}-w${i}t`,mv:m.id,k:"Yazar → Eser adı",pr:`${esc(au)} <span class="mono">(${y})</span>`,sub:`${esc(m.n)} — eserin adını yaz.`,type:"text",a:t,ex:line});
+    Q.push({id:`${m.id}-w${i}y`,mv:m.id,k:"Eser → Yıl",pr:`<i>${esc(t)}</i> — ${esc(au)}`,sub:"Hangi yıl?",type:"text",num:true,a:String(y),ex:line,showMv:true});
+  });
+  m.q.forEach((q,i)=>{
+    Q.push({id:`${m.id}-q${i}a`,mv:m.id,k:"Alıntı → Kim?",pr:`« ${esc(q[0])} »`,sub:"Kim söyledi?",type:"text",a:q[1],pool:ALL_AUTH,pref:["Montaigne","Kant","Chateaubriand","Zola","Breton","Voltaire","Rousseau","Hugo"].filter(x=>x!==q[1]),ex:`« ${esc(q[0])} » — ${q[1]} · ${esc(m.n)}`,quote:true});
+    Q.push({id:`${m.id}-q${i}m`,mv:m.id,k:"Alıntı → Akım",pr:`« ${esc(q[0])} » — ${q[1]}`,sub:"Hangi akımla ilgili?",type:"text",a:m.n,ex:`${q[1]} · ${esc(m.n)}`,quote:true});
+  });
+  m.x.forEach((x,i)=>Q.push({id:`${m.id}-x${i}`,mv:m.id,k:"Detay",pr:esc(x.q),type:x.t?"text":"mc",num:/^\d+$/.test(x.a),al:x.al,a:x.a,fixed:x.o,ex:`${esc(m.n)} — ${esc(x.q)} → <b>${esc(x.a)}</b>`,showMv:true,small:true}));
+});
+// chronologie : quel mouvement vient avant
+for(let i=0;i<MV.length-1;i++){
+  const a=MV[i],b=MV[i+1];
+  Q.push({id:`chr-${i}`,mv:a.id,k:"Kronoloji",pr:`${esc(a.n)} → ?`,sub:"Sıradaki akım hangisi? Yaz.",type:"text",a:b.n,pool:MV.filter((m,j)=>j!==i+1&&j!==i).map(m=>m.n),pref:MV.filter((m,j)=>Math.abs(j-i-1)<=2&&j!==i+1&&j!==i).map(m=>m.n),ex:`${i+1}. ${esc(a.n)} → ${i+2}. ${esc(b.n)}`});
+}
+const QBY=Object.fromEntries(Q.map(q=>[q.id,q]));
+const AUTH_AL={"Victor Hugo":["hugo","v hugo"],"Jean de Sponde":["sponde","de sponde"],"Edmond de Goncourt":["goncourt","de goncourt","edmond goncourt"],"Musset":["alfred de musset","de musset"],"Du Bellay":["joachim du bellay","bellay"],"Ronsard":["pierre de ronsard"],"Montaigne":["michel de montaigne"],"Zola":["emile zola"],"Breton":["andre breton"],"Eluard":["paul eluard"],"Sarraute":["nathalie sarraute"],"Butor":["michel butor"]};
+const MV_AL={lum:["siecle des lumieres"],abs:["theatre de l absurde"],sur:["surrealiste"]};
+function norm(x){
+  let s=String(x).toLowerCase().replace(/œ/g,"oe").replace(/æ/g,"ae").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  s=s.replace(/[’'`´]/g," ").replace(/[^a-z0-9]+/g," ").trim();
+  s=s.replace(/^(le|la|les|l|un|une|des|du)\s+/,"");
+  return s.replace(/\s+/g,"");
+}
+function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 9;let p=[...Array(n+1).keys()];for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function accepted(q){
+  let list=[q.a].concat(q.al||[]);
+  const mv=MV.find(m=>m.n===q.a); if(mv) list=list.concat(MV_AL[mv.id]||[]);
+  if(AUTH_AL[q.a]) list=list.concat(AUTH_AL[q.a]);
+  list.slice().forEach(x=>{const p=String(x).split(/\s+(?:et|ou)\s+/i);if(p.length===2){list.push(p[1]+" et "+p[0],p[0]+" "+p[1],p[1]+" "+p[0])}});
+  return [...new Set(list.map(norm))];
+}
+function check(q,input){
+  const g=norm(input); if(!g) return 0;
+  const acc=accepted(q);
+  if(acc.includes(g)) return 2;
+  if(q.num) return 0;
+  for(const a of acc){const tol=a.length>=12?2:a.length>=5?1:0; if(tol&&lev(a,g)<=tol) return 1;}
+  return 0;
+}
+
+function options(q){
+  let d=[];
+  if(q.fixed) d=q.fixed.slice();
+  else if(q.year){
+    const cand=new Set();
+    MV.forEach(m=>m.w.forEach(w=>{if(w[1]!==q.year&&Math.abs(w[1]-q.year)<=30)cand.add(w[1])}));
+    const other=rnd([...cand]).slice(0,1);
+    const nearY=rnd([-11,-8,-6,-5,-4,-3,-2,2,3,4,5,6,8,11].map(k=>q.year+k)).filter(y=>!other.includes(y));
+    d=other.concat(nearY).slice(0,3).map(String);
+  } else {
+    const pref=rnd(q.pref||[]), pool=rnd(q.pool||[]);
+    for(const x of pref.concat(pool)){ if(x!==q.a&&!d.includes(x)) d.push(x); if(d.length>=3)break; }
+  }
+  return rnd([q.a,...d.slice(0,3)]);
+}
+
+/* ---------- STATE ---------- */
+const KEY="mvt-lit-v1";
+let S={lv:{},xp:0,best:0,chronoBest:null};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.lv)S=Object.assign(S,s)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const lv=id=>S.lv[id]||0;
+const mastered=ids=>ids.filter(id=>lv(id)>=MASTER).length;
+
+function header(){
+  const m=mastered(Q.map(q=>q.id)), t=Q.length, p=Math.round(m/t*100);
+  document.getElementById("gbar").style.width=p+"%";
+  document.getElementById("glabel").textContent=`${m} / ${t} bilgi ezberlendi`;
+  document.getElementById("gpct").textContent=p+"%";
+  document.getElementById("xp").textContent=S.xp;
+  document.getElementById("best").textContent=S.best;
+}
+
+/* ---------- VIEWS ---------- */
+const view=document.getElementById("view");
+let tab="game";
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));render()});
+function render(){header(); ({game:renderMenu,chrono:renderChrono,fiches:renderFiches})[tab]();}
+
+let confirmReset=false;
+function renderMenu(){
+  G=null;
+  const all=Q.map(q=>q.id);
+  let h=`<div class="eyebrow" style="margin-bottom:8px">Bölüm seç — her bilgi ${MASTER} kez doğru bilinince ezberlenmiş sayılır</div><p class="muted" style="margin:0 0 10px;font-size:14px">Soruların çoğu yazmalı. Aksan, büyük/küçük harf, noktalama ve baştaki le/la/les önemli değil; küçük bir yazım hatası da kabul edilir.</p><div class="chapters">`;
+  h+=chap("all","Tümü · karışık",`${MV.length} akım + kronoloji`,all,true);
+  MV.forEach((m,i)=>h+=chap(m.id,m.n,`${i+1}. ${m.p}`,Q.filter(q=>q.mv===m.id&&!q.id.startsWith("chr")).map(q=>q.id)));
+  h+=chap("chr","Kronoloji","Hangi akım sonra gelir?",Q.filter(q=>q.id.startsWith("chr")).map(q=>q.id));
+  h+=`</div><div class="confirm" style="margin-top:16px">`+(confirmReset?`<span>Tüm ilerleme silinsin mi?</span><button class="btn" id="ry" style="background:var(--bad)">Evet, sıfırla</button><button class="btn ghost" id="rn">Vazgeç</button>`:`<button class="btn ghost" id="rs">İlerlemeyi sıfırla</button>`)+`</div>`;
+  view.innerHTML=h;
+  view.querySelectorAll(".chap").forEach(b=>b.onclick=()=>start(b.dataset.s));
+  const rs=document.getElementById("rs"); if(rs) rs.onclick=()=>{confirmReset=true;renderMenu()};
+  const ry=document.getElementById("ry"); if(ry) ry.onclick=()=>{S={lv:{},xp:0,best:0,chronoBest:S.chronoBest};save();confirmReset=false;render()};
+  const rn=document.getElementById("rn"); if(rn) rn.onclick=()=>{confirmReset=false;renderMenu()};
+}
+function chap(s,name,pd,ids,all){
+  const m=mastered(ids),t=ids.length;
+  return `<button class="chap${all?" all":""}${m===t?" done":""}" data-s="${s}"><span class="nm">${esc(name)}</span><span class="pd">${esc(pd)}</span><span class="mini"><i style="width:${m/t*100}%"></i></span><span class="ct">${m}/${t}</span></button>`;
+}
+
+/* ---------- GAME ENGINE ---------- */
+let G=null;
+function start(scope){
+  let ids;
+  if(scope==="all") ids=Q.map(q=>q.id);
+  else if(scope==="chr") ids=Q.filter(q=>q.id.startsWith("chr")).map(q=>q.id);
+  else ids=Q.filter(q=>q.mv===scope&&!q.id.startsWith("chr")).map(q=>q.id);
+  let deck=ids.filter(id=>lv(id)<MASTER);
+  let review=false;
+  if(!deck.length){deck=ids.slice();review=true;}
+  // new material grouped by movement order, shuffled inside; "all" fully shuffled among unfinished
+  deck=scope==="all"?rnd(deck):rnd(deck);
+  G={scope,ids,deck,combo:0,right:0,wrong:0,review,cur:null,answered:false,seenReview:{}};
+  next();
+}
+function next(){
+  if(!G.deck.length) return finish();
+  G.cur=QBY[G.deck[0]]; G.opts=G.cur.type==="mc"?options(G.cur):null; G.answered=false; G.hint=0; drawQ();
+}
+function drawQ(){
+  const q=G.cur, m=MV.find(x=>x.id===q.mv), L=lv(q.id);
+  const done=mastered(G.ids), tot=G.ids.length;
+  let h=`<div class="row" style="margin-bottom:10px"><button class="btn ghost" id="back">← Bölümler</button>
+    <span class="muted" style="font-size:14px">${G.review?"Tekrar turu · ":""}<span class="mono">${done}/${tot}</span> ezber · kalan <span class="mono">${G.deck.length}</span> · seri <span class="combo" id="cb">×${G.combo}</span></span></div>
+  <div class="card" id="card">
+    <div class="qhead"><span class="kind">${q.k}</span>
+      <span class="pips" title="Ezber seviyesi">${[...Array(MASTER)].map((_,i)=>`<span class="pip${i<L?" on":""}"></span>`).join("")}</span></div>
+    ${q.showMv?`<div><span class="tag">${esc(m.n)}</span></div>`:""}
+    <div class="prompt${q.quote||q.small?" quote":""}">${q.pr}</div>
+    ${q.sub?`<div class="sub">${q.sub}</div>`:""}
+    ${G.opts?`<div class="opts">${G.opts.map((o,i)=>`<button class="opt" data-i="${i}"><span class="k">${i+1}</span><span>${esc(o)}</span></button>`).join("")}</div>`:
+    `<form class="typed" id="tf" autocomplete="off"><input id="ans" class="inp" type="text" ${q.num?'inputmode="numeric"':''} autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Cevabını yaz…" aria-label="Cevap">
+      <div class="row"><span><button type="button" class="btn ghost" id="hint">İpucu</button> <button type="button" class="btn ghost" id="idk">Bilmiyorum</button></span><button class="btn" type="submit">Kontrol et</button></div>
+      <div id="hintbox" class="muted mono" style="font-size:14px"></div></form>`}
+    <div id="fb"></div>
+  </div>`;
+  view.innerHTML=h;
+  document.getElementById("back").onclick=()=>{G=null;renderMenu()};
+  view.querySelectorAll(".opt").forEach(b=>b.onclick=()=>answerMC(+b.dataset.i));
+  const tf=document.getElementById("tf");
+  if(tf){
+    const inp=document.getElementById("ans"); inp.focus({preventScroll:true});
+    tf.onsubmit=e=>{e.preventDefault(); if(!G.answered&&inp.value.trim()) answerText(inp.value)};
+    inp.addEventListener("keydown",e=>e.stopPropagation());
+    document.getElementById("idk").onclick=()=>answerText("");
+    document.getElementById("hint").onclick=()=>{ if(G.answered)return; G.hint=Math.min(G.hint+1,3);
+      const a=q.a; const show=Math.min(a.length,G.hint*Math.max(1,Math.ceil(a.length/6)));
+      document.getElementById("hintbox").textContent=a.split("").map((c,i)=>i<show||/[\s'’\-\/]/.test(c)?c:"_").join("");
+      inp.focus({preventScroll:true}); };
+  }
+}
+function answerMC(i){
+  if(G.answered) return;
+  const q=G.cur;
+  view.querySelectorAll(".opt").forEach((b,j)=>{b.disabled=true;
+    if(G.opts[j]===q.a) b.classList.add("right"); else if(j===i) b.classList.add("wrong"); else b.classList.add("dim");});
+  resolve(G.opts[i]===q.a,"");
+}
+function answerText(v){
+  if(G.answered) return;
+  const q=G.cur, r=check(q,v);
+  const inp=document.getElementById("ans"); inp.disabled=true; inp.classList.add(r?"right":"wrong");
+  document.querySelectorAll("#tf button").forEach(b=>b.disabled=true);
+  let note="";
+  if(r===1) note=`Küçük bir yazım hatası vardı, kabul ettim. Doğrusu: <b>${esc(q.a)}</b>`;
+  else if(r===0) note=v.trim()?`Senin cevabın: <s>${esc(v)}</s> → Doğrusu: <b>${esc(q.a)}</b>`:`Doğrusu: <b>${esc(q.a)}</b>`;
+  resolve(r>0,note);
+}
+function resolve(ok,note){
+  G.answered=true;
+  const q=G.cur;
+  G.deck.shift();
+  if(ok){
+    G.combo++; G.right++; S.best=Math.max(S.best,G.combo);
+    S.xp+=Math.round((10+2*Math.min(G.combo,10))*(q.type==="text"?1.5:1)/(1+G.hint));
+    S.lv[q.id]=Math.min(MASTER,lv(q.id)+1);
+    if(G.review){ /* review: each once */ }
+    else if(lv(q.id)<MASTER) G.deck.splice(Math.min(G.deck.length,5+(Math.random()*4|0)),0,q.id);
+  } else {
+    G.combo=0; G.wrong++;
+    S.lv[q.id]=0;
+    G.deck.splice(Math.min(G.deck.length,2),0,q.id);
+  }
+  save(); header();
+  const cb=document.getElementById("cb"); cb.textContent="×"+G.combo; if(ok&&G.combo>1) cb.classList.add("pop");
+  const justM=ok&&lv(q.id)>=MASTER&&!G.review;
+  document.getElementById("fb").innerHTML=`<div class="fb ${ok?"ok":"no"}"><span class="v">${ok?(justM?"Doğru — bu bilgi ezberlendi!":"Doğru! Bir kez daha soracağım."):"Yanlış — birazdan tekrar soracağım."}</span>${note?`<span class="ex">${note}</span>`:""}<span class="ex">${q.ex}</span></div>
+    <div class="row" style="margin-top:12px"><span class="muted" style="font-size:13px">Enter = devam</span><button class="btn" id="nx">Devam →</button></div>`;
+  if(!ok) document.getElementById("card").classList.add("shake");
+  const nx=document.getElementById("nx"); nx.onclick=next; nx.focus({preventScroll:true});
+}
+function finish(){
+  const t=G.right+G.wrong, acc=t?Math.round(G.right/t*100):0;
+  const name=G.scope==="all"?"Tümü":G.scope==="chr"?"Kronoloji":MV.find(m=>m.id===G.scope).n;
+  view.innerHTML=`<div class="card" style="align-items:flex-start">
+    <span class="kind">Bölüm tamam</span>
+    <div class="big">${esc(name)}</div>
+    <p style="margin:0">Bu bölümdeki <b class="mono">${G.ids.length}</b> bilginin hepsi ezberlendi. ${t} cevap, <b class="mono">%${acc}</b> doğru.</p>
+    <p class="muted" style="margin:0">Birkaç saat sonra “Tümü · karışık” ile tekrar et: tamamlanmış bölümler tekrar turu olarak açılır.</p>
+    <div class="row" style="width:100%"><button class="btn ghost" id="again">Bu bölümü tekrar et</button><button class="btn" id="menu">Bölümlere dön</button></div></div>`;
+  const sc=G.scope;
+  document.getElementById("again").onclick=()=>start(sc);
+  document.getElementById("menu").onclick=()=>{G=null;renderMenu()};
+}
+document.addEventListener("keydown",e=>{
+  if(tab!=="game"||!G||!G.cur) return;
+  if(!G.answered&&G.opts&&/^[1-4]$/.test(e.key)){ if(+e.key<=G.opts.length) answerMC(+e.key-1); }
+  else if(G.answered&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); next(); }
+});
+
+/* ---------- CHRONOLOGIE ---------- */
+let C=null;
+function renderChrono(){
+  G=null;
+  if(!C) C={order:rnd(MV.map((_,i)=>i)),placed:0,err:0,t0:Date.now(),done:false};
+  let h=`<div class="card"><span class="kind">Sıralama oyunu</span>
+    <p style="margin:0">12 akıma sırayla dokun: en eskiden en yeniye. ${S.chronoBest!=null?`<span class="muted">En iyi: ${S.chronoBest} hata</span>`:""}</p>
+    <div class="row"><span>Hata: <b class="mono" id="cerr">${C.err}</b></span><button class="btn ghost" id="crs">Yeniden karıştır</button></div>
+    <div class="tl"><ol>${MV.slice(0,C.placed).map((m,i)=>`<li><span class="n">${i+1}</span><span style="font-family:var(--f-display);font-size:18px">${esc(m.n)}</span><span class="p">${esc(m.p)}</span></li>`).join("")}</ol></div>
+    ${C.done?`<div class="fb ok"><span class="v">Tamamlandı — ${C.err} hata, ${Math.round((C.tEnd-C.t0)/1000)} sn.</span></div>`:
+    `<div class="chrono">${C.order.filter(i=>i>=C.placed).map(i=>`<button class="chip" data-i="${i}">${esc(MV[i].n)}</button>`).join("")}</div>`}
+  </div>`;
+  view.innerHTML=h;
+  document.getElementById("crs").onclick=()=>{C=null;renderChrono()};
+  view.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i;
+    if(i===C.placed){C.placed++; if(C.placed===MV.length){C.done=true;C.tEnd=Date.now();S.chronoBest=S.chronoBest==null?C.err:Math.min(S.chronoBest,C.err);S.xp+=Math.max(20,120-C.err*10);save();header();} renderChrono();}
+    else {C.err++; document.getElementById("cerr").textContent=C.err; b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");}
+  });
+}
+
+/* ---------- FICHES ---------- */
+function renderFiches(){
+  G=null;
+  view.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">`+MV.map((m,i)=>{
+    const ids=Q.filter(q=>q.mv===m.id&&!q.id.startsWith("chr")).map(q=>q.id);
+    const extra={
+      bar:"<li>Noir : tensions / angoisses — Blanc : ornemental / exubérant</li>",
+      cla:"<li>3 unités : 1 jour / 1 action / 1 lieu</li><li>Vraisemblance : semble réel / plausible</li><li>Bienséance : respect des conventions / ne pas choquer</li><li>La Fontaine → réf. aux Fables d'Ésope</li>",
+      lum:"<li>→ 1789, Révolution française</li>",
+      hum:"<li>Montaigne → remise en question de l'éducation</li>",
+      rea:"<li>« Le Réalisme » écrit par Champfleury (1857)</li><li>2 grands initiateurs : Stendhal et Balzac</li><li>La Comédie humaine (Balzac) = 93 textes, portrait exhaustif de la société ; personnages récurrents (Le Père Goriot)</li><li>Flaubert refuse absolument l'étiquette</li>",
+      abs:"<li>Ionesco et Beckett préfèrent parler d'insolite ou de vacuité du monde</li>",
+      sur:"<li>Breton : « Automatisme psychique pur… Dictée de la pensée en l'absence de tout contrôle exercé par la raison, en dehors de toute préoccupation esthétique ou morale… réalité supérieure de certaines formes d'associations négligées… toute puissance du rêve, jeu désintéressé de la pensée. »</li>"
+    }[m.id]||"";
+    return `<div class="card fiche"><div class="row"><span class="fnum">${String(i+1).padStart(2,"0")} / 12</span><span class="fnum">${mastered(ids)}/${ids.length} ezber</span></div>
+      <h2>${esc(m.n)}</h2><div class="pd">${esc(m.p)}</div>
+      <ul>${m.c.map(c=>`<li>${esc(c[0])}</li>`).join("")}${extra}</ul>
+      <div class="wk">${m.w.map(w=>`<span class="y">${w[1]}</span><span><i>${esc(w[0])}</i> — ${esc(w[2])}</span>`).join("")}</div>
+      ${m.q.map(q=>`<blockquote>« ${esc(q[0])} »<cite>— ${esc(q[1])}</cite></blockquote>`).join("")}
+    </div>`}).join("")+`</div>`;
+}
+
+render();
+</script>
+</body>
+</html>
